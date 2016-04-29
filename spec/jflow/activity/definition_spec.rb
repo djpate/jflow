@@ -56,7 +56,9 @@ describe JFlow::Activity::Definition do
                                                     {:name=>"Foo",
                                                      :version=>"1.0",
                                                      :domain=>"foo",
-                                                     :default_task_list=>{:name=>"tasklist"}})
+                                                     :default_task_list=>{:name=>"tasklist"},
+                                                     :exceptions_to_exclude=>[]
+                                                    })
     end
   end
 
@@ -64,7 +66,12 @@ describe JFlow::Activity::Definition do
     it "should register the activity to SWF" do
       definition
       expect(JFlow.configuration.swf_client).to have_received(:register_activity_type)
-                                              .with({:name=>"Foo", :version=>"1.0", :domain=>"foo", :default_task_list=>{:name=>"tasklist"}})
+                                              .with({
+                                                :name=>"Foo",
+                                                :version=>"1.0",
+                                                :domain=>"foo",
+                                                :default_task_list=>{:name=>"tasklist"}
+                                              })
     end
   end
 

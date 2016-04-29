@@ -2,7 +2,11 @@ module JFlow
   module Activity
     class Definition
 
-      DEFAULT_OPTIONS = {}
+      DEFAULT_OPTIONS = {
+        :exceptions_to_exclude => []
+      }
+
+      REGISTRATION_OPTIONS = %i(version domain name default_task_list)
 
       OPTIONS_VALIDATOR = {
         :version => "string",
@@ -10,7 +14,8 @@ module JFlow
         :name    => "string",
         :default_task_list => {
           :name => "string"
-        }
+        },
+        :exceptions_to_exclude => 'array'
       }
 
       attr_reader :options, :klass
@@ -38,7 +43,7 @@ module JFlow
       end
 
       def register_activity
-        JFlow.configuration.swf_client.register_activity_type(options)
+        JFlow.configuration.swf_client.register_activity_type(registration_options)
         JFlow.configuration.logger.info "Activity #{name} was registered successfuly"
       end
 
@@ -76,6 +81,12 @@ module JFlow
       end
 
       private
+
+      def registration_options
+        REGISTRATION_OPTIONS.each_with_object({}) do |key, hash|
+          hash[key] = @options[key]
+        end
+      end
 
       def validate_activity!
         validator = HashValidator.validate(@options, OPTIONS_VALIDATOR)

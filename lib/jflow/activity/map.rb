@@ -16,6 +16,11 @@ module JFlow
         @map[name][version][:class]
       end
 
+      def options_for(name, version)
+        return nil if !@map.has_key?(name) || !@map[name][version]
+        @map[name][version][:options]
+      end
+
     end
   end
 end

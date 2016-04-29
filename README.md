@@ -42,7 +42,8 @@ Class FooActivity
       default_task_schedule_to_start_timeout: "600",
       default_task_schedule_to_close_timeout: "600",
       default_task_start_to_close_timeout: "600",
-      default_task_heartbeat_timeout: "600"
+      default_task_heartbeat_timeout: "600",
+      exceptions_to_exclude: [PermanentError]
     }
   end
 

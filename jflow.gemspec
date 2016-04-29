@@ -6,8 +6,8 @@ require 'jflow/version'
 Gem::Specification.new do |spec|
   spec.name          = "jflow"
   spec.version       = JFlow::VERSION
-  spec.authors       = ["Christophe Verbinnen"]
-  spec.email         = ["christophe.verbinnen@lookout.com"]
+  spec.authors       = ["Christophe Verbinnen","Richard Vorp"]
+  spec.email         = ["christophe.verbinnen@lookout.com","richard.vorp@lookout.com"]
 
   spec.summary       = %q{SWF Flow framework for jRuby}
   spec.description   = %q{you know, for flow}

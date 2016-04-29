@@ -43,6 +43,12 @@ module JFlow
         @klass_value
       end
 
+      def definition_options
+        @definition_options ||= JFlow.configuration.activity_map.options_for(name,version)
+        raise "Could not find activity definition for #{name}, #{version}" unless @definition_options
+        @definition_options
+      end
+
       def method
         if name.split('.').size > 1
           method = name.split('.').last
@@ -67,25 +73,31 @@ module JFlow
         })
       end
 
-
       def failed!(exception)
         log "Task Failed #{exception.message}"
 
         reason = truncate(exception.message, MAX_REASON_SIZE)
-        details = if exception.backtrace
-                    truncate(exception.backtrace.join("\n"), MAX_DETAILS_SIZE)
-                  else
-                    "no stacktrace"
-                  end
+
+        if retryable?(exception)
+          converted_exception = StandardError.new(exception.message)
+          converted_exception.set_backtrace(exception.backtrace)
+        else
+          converted_exception = RuntimeError.new(exception.message)
+          converted_exception.set_backtrace(exception.backtrace)
+        end
 
         swf_client.respond_activity_task_failed(
           task_token: token,
           reason: reason,
-          details: details
+          details: truncate(YAML.dump_stream(converted_exception, exception.backtrace), MAX_DETAILS_SIZE)
         )
       end
 
       private
+
+      def retryable?(exception)
+        !definition_options[:exceptions_to_exclude].include?(exception.class)
+      end
 
       def truncate(message, max_length)
         return message unless message.length > max_length

@@ -5,6 +5,8 @@ describe JFlow::Activity::Task do
   class FooActivity
   end
 
+  class FooError < StandardError; end
+
   let(:mock_activity) do
     double(:activity,{
       :input => "--- foo\n",
@@ -104,35 +106,66 @@ describe JFlow::Activity::Task do
   end
 
   describe "#failed!" do
-    context "short exception strings" do
-      let(:exception){double(:exception,{ :message => "foo", :backtrace => ["b","a","r"]})}
-      it "should send the right signal to SWF" do
+    context "exception to exclude" do
+      before(:each) do
+        expect(JFlow.configuration.activity_map).to receive(:options_for)
+                                              .and_return({ exceptions_to_exclude: [FooError]})
+      end
+
+      let(:exception) do
+        e = FooError.new('beer')
+        e.set_backtrace(%w(n o w))
+        e
+      end
+
+      it "should wrap exception types that are excluded as SignalException" do
+
         expect(JFlow.configuration.swf_client).to receive(:respond_activity_task_failed)
                                               .with({
                                                 :task_token => task.token,
-                                                :reason => "foo",
-                                                :details => "b\na\nr"
+                                                :reason => "beer",
+                                                :details => "--- !ruby/exception:RuntimeError\nmessage: beer\n---\n- n\n- o\n- w\n"
                                               })
         task.failed!(exception)
       end
     end
 
-    context "exception messages that are too long" do
-      let(:message) { "X" * 257 }
-      let(:backtrace) { ["X" * 32769] }
-      let(:exception) { double(:exception,{ :message => message, :backtrace => backtrace } ) }
-      
-      after { task.failed!(exception) }
+    context "no exceptions to exclude" do
+      before(:each) do
+        expect(JFlow.configuration.activity_map).to receive(:options_for)
+                                                .and_return({ exceptions_to_exclude: []})
+      end
 
-      it "truncates and adds the truncate message" do
-        expect(JFlow.configuration.swf_client).to receive(:respond_activity_task_failed)
-          .with(
-            :task_token => task.token,
-            :reason => "#{'X' * 245}[TRUNCATED]",
-            :details => "#{'X' * 32757}[TRUNCATED]"
-          )
+      context "short exception strings" do
+        let(:exception){double(:exception,{ :message => "foo", :backtrace => ["b","a","r"]})}
+        it "should send the right signal to SWF" do
+
+          expect(JFlow.configuration.swf_client).to receive(:respond_activity_task_failed)
+                                                .with({
+                                                  :task_token => task.token,
+                                                  :reason => "foo",
+                                                  :details => "--- !ruby/exception:StandardError\nmessage: foo\n---\n- b\n- a\n- r\n"
+                                                })
+          task.failed!(exception)
+        end
+      end
+
+      context "exception messages that are too long" do
+        let(:message) { "X" * 257 }
+        let(:backtrace) { ["X" * 32769] }
+        let(:exception) { double(:exception,{ :message => message, :backtrace => backtrace } ) }
+
+        after { task.failed!(exception) }
+
+        it "truncates and adds the truncate message" do
+          expect(JFlow.configuration.swf_client).to receive(:respond_activity_task_failed)
+            .with(
+              :task_token => task.token,
+              :reason => "#{'X' * 245}[TRUNCATED]",
+              :details => "--- !ruby/exception:StandardError\nmessage: #{message}\n---\n- #{'X' * 32450}[TRUNCATED]"
+            )
+        end
       end
     end
   end
-
 end
