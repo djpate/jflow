@@ -92,14 +92,7 @@ module JFlow
       end
 
       def handle_exception(exception)
-        JFlow.configuration.error_handlers.each do |error_handler|
-          begin
-            error_handler.call(exception)
-          rescue => e
-            log_error("Error handler failed!")
-            log_error(e.backtrace.join("\n")) unless e.backtrace.nil?
-          end
-        end
+        JFlow.handle_exception(exception)
       end
 
       private

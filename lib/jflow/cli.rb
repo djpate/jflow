@@ -70,9 +70,14 @@ module JFlow
         protector = JFlow::TerminationProtector.new
         loop do
           break if Thread.current.marked_for_shutdown?
-          protector.set_protection(should_protect?) if is_ec2_instance?
-          stats.tick if enable_stats
-          sleep 30
+          begin
+            protector.set_protection(should_protect?) if is_ec2_instance?
+            stats.tick if enable_stats
+            sleep 30
+          rescue => e
+            JFlow.handle_exception(e)
+            sleep 180
+          end
         end
       end
     end
