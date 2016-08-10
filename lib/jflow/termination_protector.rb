@@ -3,6 +3,13 @@ require 'json'
 module JFlow
   class TerminationProtector
 
+    attr_accessor :asg_client, :ec2_client
+
+    def initialize(asg_client = nil, ec2_client = nil)
+      @asg_client = asg_client || Aws::AutoScaling::Client.new(region: region, credentials: Aws::InstanceProfileCredentials.new)
+      @ec2_client = ec2_client || Aws::EC2::Client.new(region: region, credentials: Aws::InstanceProfileCredentials.new)
+    end
+
     def region
       instance_data['region']
     end
@@ -45,22 +52,6 @@ module JFlow
         JFlow.configuration.logger.debug "Something went wrong setting termination proection: #{e.inspect}"
         JFlow.handle_exception(e)
       end
-    end
-
-    def asg_client=(asg_client)
-      @asg_client = asg_client
-    end
-
-    def asg_client
-      @asg_client ||= Aws::AutoScaling::Client.new(region: region, credentials: Aws::InstanceProfileCredentials.new)
-    end
-
-    def ec2_client=(ec2_client)
-      @ec2_client = ec2_client
-    end
-
-    def ec2_client
-      @ec2_client ||= Aws::EC2::Client.new(region: region, credentials: Aws::InstanceProfileCredentials.new)
     end
   end
 end

@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe JFlow::TerminationProtector do
-  subject { described_class.new }
+  subject { described_class.new(aws_autoscaling_client, aws_ec2_client) }
   let(:aws_autoscaling_client) { Aws::AutoScaling::Client.new(stub_responses: true) }
   let(:aws_ec2_client) { Aws::EC2::Client.new(stub_responses: true) }
   let(:instance_identity) do
@@ -15,8 +15,6 @@ describe JFlow::TerminationProtector do
   end
 
   before do
-    subject.ec2_client = aws_ec2_client
-    subject.asg_client = aws_autoscaling_client
     allow(Net::HTTP).to receive(:get).and_return(instance_identity)
     aws_ec2_client.stub_responses(:describe_tags, tags: [{key: 'aws:autoscaling:groupName', resource_id: 'foobar', resource_type: 'instance', value: 'some_asg_name'}])
   end
