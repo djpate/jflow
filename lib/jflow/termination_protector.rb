@@ -1,8 +1,14 @@
 require 'net/http'
 require 'json'
-
 module JFlow
   class TerminationProtector
+
+    attr_accessor :asg_client, :ec2_client
+
+    def initialize(asg_client = nil, ec2_client = nil)
+      @asg_client = asg_client || Aws::AutoScaling::Client.new(region: region, credentials: Aws::InstanceProfileCredentials.new)
+      @ec2_client = ec2_client || Aws::EC2::Client.new(region: region, credentials: Aws::InstanceProfileCredentials.new)
+    end
 
     def region
       instance_data['region']
@@ -18,7 +24,6 @@ module JFlow
     end
 
     def get_asg_name
-      ec2_client = Aws::EC2::Client.new(region: region, credentials: Aws::InstanceProfileCredentials.new)
       instance_tags = ec2_client.describe_tags(filters: [
         {
           name: "resource-id",
@@ -32,9 +37,12 @@ module JFlow
     end
 
     def set_protection(protect_status)
+      @previous_protect_status ||= false
+      return if @previous_protect_status == protect_status
+      @previous_protect_status = protect_status
+
       JFlow.configuration.logger.debug "Setting termination protection status to #{protect_status} for instance #{instance_id} in region #{region}"
       begin
-        asg_client = Aws::AutoScaling::Client.new(region: region, credentials: Aws::InstanceProfileCredentials.new)
         asg_client.set_instance_protection({
           instance_ids: [instance_id],
           auto_scaling_group_name: get_asg_name,
@@ -42,8 +50,8 @@ module JFlow
         })
       rescue => e
         JFlow.configuration.logger.debug "Something went wrong setting termination proection: #{e.inspect}"
+        JFlow.handle_exception(e)
       end
     end
-
   end
 end
